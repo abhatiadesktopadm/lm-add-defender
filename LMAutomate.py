@@ -1,4 +1,4 @@
-# Version 2.1.0
+# Version 3.1.1
 
 import logicmonitor_sdk
 from logicmonitor_sdk.rest import ApiException
@@ -132,6 +132,37 @@ def create_dynamic_group(api_instance, parent_id, name, query, enable_netflow=Fa
     except ApiException as e:
         logging.error(f"Failed to create dynamic group '{name}': {e}")
 
+# === Function to Add Microsoft Defender Device ===
+def add_defender(api_instance, parent_folder_id, device_name, hostname, collector_id):
+    """
+    Adds Microsoft Defender under the specified client folder.
+    Uses `preferredCollectorGroupId` instead of `system.collectorid` for assigning the Collector.
+    """
+    try:
+        if collector_id <= 0:
+            logging.error("Invalid Collector ID. Please use a valid Collector ID from LogicMonitor.")
+            return None
+
+        # Create the device payload with the correct Collector assignment
+        device_payload = {
+            "hostGroupIds": str(parent_folder_id),  # Assign device to the correct client folder
+            "name": hostname,
+            "displayName": device_name,
+            "preferredCollectorId": collector_id # Correct way to assign collector
+            
+            
+        }
+
+        logging.info(f"Adding device with parameters: {json.dumps(device_payload, indent=2)}")
+        response = api_instance.add_device(device_payload)
+        logging.info(f"Microsoft Defender added successfully. Device ID: {response.id}")
+        return response.id
+
+    except ApiException as e:
+        logging.error(f"Failed to add Microsoft Defender: {e}")
+        return None
+
+
 # === Main Function ===
 def main():
     """
@@ -158,6 +189,21 @@ def main():
 
     # Step 4: Create dynamic groups as subfolders
     create_device_groups(api_instance, new_client_folder_id)
+
+    # Step 5: Add Microsoft Defender as a device
+    device_name = f"Microsoft Defender - {client_name}"
+    hostname = "www.example.com"
+
+    # Get user input for Collector ID
+    collector_id = input("Enter the Collector ID for Microsoft Defender: ").strip()
+    if not collector_id.isdigit():
+        logging.error("Error: Collector ID must be a number.")
+        return
+    collector_id = int(collector_id)
+
+    # Add Microsoft Defender device to the newly created client folder
+    add_defender(api_instance, new_client_folder_id, device_name, hostname, collector_id)
+
 
 # === Entry Point ===
 if __name__ == "__main__":
