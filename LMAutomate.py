@@ -1,4 +1,4 @@
-# Version 3.1.1
+# Version 4.1.1
 
 import logicmonitor_sdk
 from logicmonitor_sdk.rest import ApiException
@@ -133,7 +133,7 @@ def create_dynamic_group(api_instance, parent_id, name, query, enable_netflow=Fa
         logging.error(f"Failed to create dynamic group '{name}': {e}")
 
 # === Function to Add Microsoft Defender Device ===
-def add_defender(api_instance, parent_folder_id, device_name, hostname, collector_id):
+def add_lm_device(api_instance, parent_folder_id, device_name, hostname, collector_id, properties):
     """
     Adds Microsoft Defender under the specified client folder.
     Uses `preferredCollectorGroupId` instead of `system.collectorid` for assigning the Collector.
@@ -148,9 +148,8 @@ def add_defender(api_instance, parent_folder_id, device_name, hostname, collecto
             "hostGroupIds": str(parent_folder_id),  # Assign device to the correct client folder
             "name": hostname,
             "displayName": device_name,
-            "preferredCollectorId": collector_id # Correct way to assign collector
-            
-            
+            "preferredCollectorId": collector_id, # Correct way to assign collector
+            "customProperties": properties  
         }
 
         logging.info(f"Adding device with parameters: {json.dumps(device_payload, indent=2)}")
@@ -192,18 +191,53 @@ def main():
 
     # Step 5: Add Microsoft Defender as a device
     device_name = f"Microsoft Defender - {client_name}"
-    hostname = "www.example.com"
+    hostname = input("Enter the hostname for the Microsoft Defender device: ")
 
-    # Get user input for Collector ID
+    # Get user input for Collector ID for Microsoft Defender
     collector_id = input("Enter the Collector ID for Microsoft Defender: ").strip()
     if not collector_id.isdigit():
         logging.error("Error: Collector ID must be a number.")
         return
     collector_id = int(collector_id)
 
-    # Add Microsoft Defender device to the newly created client folder
-    add_defender(api_instance, new_client_folder_id, device_name, hostname, collector_id)
+    # Prompt user for Microsoft Defender system properties
+    print("\nEnter Microsoft Defender system properties:")
+    defender_properties = [
+        {"name": "azure.client.id", "value": input("  azure.client.id: ").strip()},
+        {"name": "azure.client.key", "value": input("  azure.client.key: ").strip()},
+        {"name": "azure.client.mcas.pass", "value": input("  azure.client.mcas.pass: ").strip()},
+        {"name": "azure.client.mcas.url", "value": input("  azure.client.mcas.url: ").strip()},
+        {"name": "azure.tenant.id", "value": input("  azure.tenant.id: ").strip()}
+    ]
 
+
+    # Add Microsoft Defender device to the newly created client folder
+    add_lm_device(api_instance, new_client_folder_id, device_name, hostname, collector_id, defender_properties)
+
+    # Step 6: Add Adlumin Cloud as a device
+    cloud_name = f"Adlumin Cloud - {client_name}"
+    hostname2 = input("Enter the hostname for the Adlumin Cloud device: ")
+
+    # Get user input for Collector ID for Adlumin Cloud
+    cloud_collector_id = input("Enter the Collector ID for Adlumin Cloud: ").strip()
+    if not cloud_collector_id.isdigit():
+        logging.error("Error: Collector ID must be a number.")
+        return
+    cloud_collector_id = int(cloud_collector_id)
+
+    # Prompt user for Adlumin Cloud system properties
+    print("\nEnter Adlumin Cloud system properties:")
+    adlumin_properties = [
+        {"name": "Adlumin.api.key", "value": input("  Adlumin.api.key: ").strip()},
+        {"name": "adlumin.azure.client.id", "value": input("  adlumin.azure.client.id: ").strip()},
+        {"name": "adlumin.azure.client.key", "value": input("  adlumin.azure.client.key: ").strip()},
+        {"name": "adlumin.azure.tenant.id", "value": input("  adlumin.azure.tenant.id: ").strip()},
+        {"name": "Adlumin.Tenant.id", "value": input("  Adlumin.Tenant.id: ").strip()}
+    ]
+
+
+    # Add Adlumin Cloud device to the newly created client folder
+    add_lm_device(api_instance, new_client_folder_id, cloud_name, hostname2, cloud_collector_id, adlumin_properties)
 
 # === Entry Point ===
 if __name__ == "__main__":
