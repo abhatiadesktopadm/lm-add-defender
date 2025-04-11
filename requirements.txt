@@ -1,0 +1,6 @@
+logicmonitor-sdk
+flask
+requests
+flask-cors
+azure-identity
+azure-keyvault-secrets

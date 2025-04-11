@@ -1,23 +1,25 @@
-# Version 4.1.1
+# Version 5.1.1
 
+from flask import Flask, render_template, request
 import logicmonitor_sdk
 from logicmonitor_sdk.rest import ApiException
 import logging
 import json
 
 # Configure logging
-logging.basicConfig(level=logging.DEBUG)
+logging.basicConfig(level=logging.INFO)
 
 # === LogicMonitor API Configuration ===
 lmconfig = logicmonitor_sdk.Configuration()
-lmconfig.company = 'align'  # Replace with your LogicMonitor company name
-lmconfig.access_id = '3sG44q9cJk7VD674EydM'  # Replace with your LogicMonitor API Access ID
-lmconfig.access_key = '(=(+rHtgLSmqDCrq7r3Pev6T(=Q9_qDVyA8}_]p='  # Replace with your LogicMonitor API Access Key
+lmconfig.company = 'align'
+lmconfig.access_id = '3sG44q9cJk7VD674EydM'
+lmconfig.access_key = '(=(+rHtgLSmqDCrq7r3Pev6T(=Q9_qDVyA8}_]p='
 
 # Initialize API Client
 api_instance = logicmonitor_sdk.LMApi(logicmonitor_sdk.ApiClient(lmconfig))
 
-# === Dynamic Group Settings ===
+app = Flask(__name__)
+
 group_settings = [
     ("_Collectors", lambda path: f"join(system.staticgroups,\",\") =~ \"{path}/\" && isCollectorDevice()", False),
     ("_Domain Controllers", lambda path: f"system.displayname =~ \"DC-\" && displayname !~ \"networkinterface\" && displayname !~ \"iDRAC\" && join(system.staticgroups,\",\") =~ \"{path}/\"", False),
@@ -28,12 +30,7 @@ group_settings = [
     ("_Disabled", lambda path: f"(system.displayname =~ \"-test`$\" || system.azure.resourcegroupname =~ \"-test\" || system.azure.status =~ \"deallocated\" || system.azure.resourcegroupname =~ \"-desktops\") && join(system.staticgroups,\",\") =~ \"{path}/\"", False)
 ]
 
-# === Function to Create a Folder ===
 def create_folder(api_instance, parent_folder_id, folder_name):
-    """
-    Creates a folder (device group) in LogicMonitor under the given parent folder ID.
-    Returns the ID of the created folder, or None if creation fails.
-    """
     try:
         folder = logicmonitor_sdk.DeviceGroup(name=folder_name, parent_id=parent_folder_id)
         response = api_instance.add_device_group(folder)
@@ -43,203 +40,140 @@ def create_folder(api_instance, parent_folder_id, folder_name):
         logging.error(f"Failed to create folder '{folder_name}': {e}")
         return None
 
-# === Function to Add Client Folder Properties ===
-def add_client_folder_properties(api_instance, folder_id):
-    """
-    Prompts the user for client-specific properties and adds them to the client folder.
-    Ensures 'company.name' and 'connectwisev2.companyid' are set.
-    """
+def add_client_folder_properties(api_instance, folder_id, company_name, company_id):
     try:
-        company_name = input("Enter the Company Name for this client: ").strip()
-        company_id = input("Enter the ConnectWise Company ID: ").strip()
-
         properties = [
             {"name": "company.name", "value": company_name},
             {"name": "connectwisev2.companyid", "value": company_id}
         ]
-
         for prop in properties:
             prop_obj = logicmonitor_sdk.models.EntityProperty(name=prop["name"], value=prop["value"])
             api_instance.add_device_group_property(folder_id, prop_obj)
-
         logging.info(f"Properties added to folder ID {folder_id}")
-
     except ApiException as e:
         logging.error(f"Failed to add properties to folder ID {folder_id}: {e}")
 
-# === Function to Create "Main" Folder and Subfolders ===
 def create_main_folder_structure(api_instance, client_folder_id):
-    """
-    Creates a 'Main' folder inside the client folder.
-    Inside 'Main', creates 'Network', 'Power', and 'Services' subfolders.
-    """
     try:
-        # Create the 'Main' folder inside the client folder
         main_folder_id = create_folder(api_instance, client_folder_id, "Main")
         if not main_folder_id:
-            logging.error("Failed to create 'Main' folder. Skipping subfolder creation.")
             return
-        
-        # Create subfolders inside 'Main'
-        subfolders = ["Network", "Power", "Services"]
-        for subfolder in subfolders:
+        for subfolder in ["Network", "Power", "Services"]:
             create_folder(api_instance, main_folder_id, subfolder)
-
     except ApiException as e:
-        logging.error(f"Failed to create 'Main' folder structure: {e}")
+        logging.error(f"Failed to create 'Main' structure: {e}")
 
-# === Function to Create Dynamic Groups ===
 def create_device_groups(api_instance, parent_device_group_id):
-    """
-    Creates predefined dynamic groups as subgroups under the specified parent folder.
-    Uses predefined AppliesTo queries to filter devices.
-    """
     try:
-        # Get the full path of the parent device group
         parent_group = api_instance.get_device_group_by_id(parent_device_group_id)
         path = parent_group.full_path
-
         for name, query_func, enable_netflow in group_settings:
             query = query_func(path)
             create_dynamic_group(api_instance, parent_device_group_id, name, query, enable_netflow)
-
     except ApiException as e:
         logging.error(f"Failed to create dynamic groups: {e}")
 
-# === Function to Create a Dynamic Group (with AppliesTo Query) ===
 def create_dynamic_group(api_instance, parent_id, name, query, enable_netflow=False):
-    """
-    Creates a dynamic group with an AppliesTo query in LogicMonitor.
-    Ensures the group does not already exist before attempting to create it.
-    """
     try:
-        # Check if the group already exists
         existing_groups = api_instance.get_device_group_by_id(parent_id).sub_groups
         if any(group.name == name for group in existing_groups):
-            logging.info(f"Dynamic group '{name}' already exists under parent ID {parent_id}.")
             return
-
-        # Create the group
         new_group = logicmonitor_sdk.DeviceGroup(
             name=name,
             parent_id=parent_id,
             applies_to=query,
             enable_netflow=enable_netflow
         )
-        response = api_instance.add_device_group(new_group)
-        logging.info(f"Dynamic group '{name}' created under parent ID {parent_id}. ID: {response.id}")
-
+        api_instance.add_device_group(new_group)
     except ApiException as e:
         logging.error(f"Failed to create dynamic group '{name}': {e}")
 
-# === Function to Add Microsoft Defender Device ===
 def add_lm_device(api_instance, parent_folder_id, device_name, hostname, collector_id, properties):
-    """
-    Adds Microsoft Defender under the specified client folder.
-    Uses `preferredCollectorGroupId` instead of `system.collectorid` for assigning the Collector.
-    """
     try:
         if collector_id <= 0:
-            logging.error("Invalid Collector ID. Please use a valid Collector ID from LogicMonitor.")
-            return None
-
-        # Create the device payload with the correct Collector assignment
+            logging.error("Invalid collector ID")
+            return
         device_payload = {
-            "hostGroupIds": str(parent_folder_id),  # Assign device to the correct client folder
+            "hostGroupIds": str(parent_folder_id),
             "name": hostname,
             "displayName": device_name,
-            "preferredCollectorId": collector_id, # Correct way to assign collector
-            "customProperties": properties  
+            "preferredCollectorId": collector_id,
+            "customProperties": properties
         }
-
-        logging.info(f"Adding device with parameters: {json.dumps(device_payload, indent=2)}")
         response = api_instance.add_device(device_payload)
-        logging.info(f"Microsoft Defender added successfully. Device ID: {response.id}")
+        logging.info(f"Device '{device_name}' added successfully.")
         return response.id
-
     except ApiException as e:
-        logging.error(f"Failed to add Microsoft Defender: {e}")
+        logging.error(f"Failed to add device '{device_name}': {e}")
         return None
 
+@app.route('/')
+def form():
+    return render_template('index.html')
 
-# === Main Function ===
-def main():
-    """
-    Main execution function. Handles user input, folder creation, 
-    client properties, dynamic groups, and the "Main" folder structure.
-    """
-    # Get client details from the user
-    client_name = input("Enter the Client Name: ").strip()
+@app.route('/submit', methods=['POST'])
+def submit():
+    data = request.form
+    logging.info(f"Received form data: {data}")  # <-- Debug input
 
-    # Root folder ID under which all clients' folders are created
-    root_folder_id = 2  # Client folder ID
+    client_name = data['client_name']
+    company_name = data['company_name']
+    company_id = data['company_id']
+    root_folder_id = 2
 
-    # Step 1: Create the client folder
     new_client_folder_id = create_folder(api_instance, root_folder_id, client_name)
+    logging.info(f"New client folder ID: {new_client_folder_id}")
     if not new_client_folder_id:
-        logging.error("Failed to create client folder. Exiting.")
-        return
+        return "Error creating client folder."
 
-    # Step 2: Prompt user for client folder properties and add them
-    add_client_folder_properties(api_instance, new_client_folder_id)
+    add_client_folder_properties(api_instance, new_client_folder_id, company_name, company_id)
+    logging.info("Client folder properties added.")
 
-    # Step 3: Create "Main" folder and its subfolders inside the client folder
     create_main_folder_structure(api_instance, new_client_folder_id)
-
-    # Step 4: Create dynamic groups as subfolders
     create_device_groups(api_instance, new_client_folder_id)
 
-    # Step 5: Add Microsoft Defender as a device
-    device_name = f"Microsoft Defender - {client_name}"
-    hostname = input("Enter the hostname for the Microsoft Defender device: ")
-
-    # Get user input for Collector ID for Microsoft Defender
-    collector_id = input("Enter the Collector ID for Microsoft Defender: ").strip()
-    if not collector_id.isdigit():
-        logging.error("Error: Collector ID must be a number.")
-        return
-    collector_id = int(collector_id)
-
-    # Prompt user for Microsoft Defender system properties
-    print("\nEnter Microsoft Defender system properties:")
-    defender_properties = [
-        {"name": "azure.client.id", "value": input("  azure.client.id: ").strip()},
-        {"name": "azure.client.key", "value": input("  azure.client.key: ").strip()},
-        {"name": "azure.client.mcas.pass", "value": input("  azure.client.mcas.pass: ").strip()},
-        {"name": "azure.client.mcas.url", "value": input("  azure.client.mcas.url: ").strip()},
-        {"name": "azure.tenant.id", "value": input("  azure.tenant.id: ").strip()}
+    defender_props = [
+        {"name": "azure.client.id", "value": data["azure_client_id"]},
+        {"name": "azure.client.key", "value": data["azure_client_key"]},
+        {"name": "azure.client.mcas.pass", "value": data["azure_mcas_pass"]},
+        {"name": "azure.client.mcas.url", "value": data["azure_mcas_url"]},
+        {"name": "azure.tenant.id", "value": data["azure_tenant_id"]}
     ]
+    logging.info(f"Defender properties: {defender_props}")
 
+    defender_name = f"Microsoft Defender - {client_name}"
+    defender_device_id = add_lm_device(
+        api_instance,
+        new_client_folder_id,
+        defender_name,
+        data["defender_hostname"],
+        int(data["defender_collector_id"]),
+        defender_props
+    )
+    logging.info(f"Defender device ID returned: {defender_device_id}")
 
-    # Add Microsoft Defender device to the newly created client folder
-    add_lm_device(api_instance, new_client_folder_id, device_name, hostname, collector_id, defender_properties)
-
-    # Step 6: Add Adlumin Cloud as a device
-    cloud_name = f"Adlumin Cloud - {client_name}"
-    hostname2 = input("Enter the hostname for the Adlumin Cloud device: ")
-
-    # Get user input for Collector ID for Adlumin Cloud
-    cloud_collector_id = input("Enter the Collector ID for Adlumin Cloud: ").strip()
-    if not cloud_collector_id.isdigit():
-        logging.error("Error: Collector ID must be a number.")
-        return
-    cloud_collector_id = int(cloud_collector_id)
-
-    # Prompt user for Adlumin Cloud system properties
-    print("\nEnter Adlumin Cloud system properties:")
-    adlumin_properties = [
-        {"name": "Adlumin.api.key", "value": input("  Adlumin.api.key: ").strip()},
-        {"name": "adlumin.azure.client.id", "value": input("  adlumin.azure.client.id: ").strip()},
-        {"name": "adlumin.azure.client.key", "value": input("  adlumin.azure.client.key: ").strip()},
-        {"name": "adlumin.azure.tenant.id", "value": input("  adlumin.azure.tenant.id: ").strip()},
-        {"name": "Adlumin.Tenant.id", "value": input("  Adlumin.Tenant.id: ").strip()}
+    adlumin_props = [
+        {"name": "Adlumin.api.key", "value": data["adlumin_api_key"]},
+        {"name": "adlumin.azure.client.id", "value": data["adlumin_client_id"]},
+        {"name": "adlumin.azure.client.key", "value": data["adlumin_client_key"]},
+        {"name": "adlumin.azure.tenant.id", "value": data["adlumin_tenant_id"]},
+        {"name": "Adlumin.Tenant.id", "value": data["adlumin_tenant_id_2"]}
     ]
+    logging.info(f"Adlumin properties: {adlumin_props}")
+
+    adlumin_name = f"Adlumin Cloud - {client_name}"
+    adlumin_device_id = add_lm_device(
+        api_instance,
+        new_client_folder_id,
+        adlumin_name,
+        data["adlumin_hostname"],
+        int(data["adlumin_collector_id"]),
+        adlumin_props
+    )
+    logging.info(f"Adlumin device ID returned: {adlumin_device_id}")
+
+    return f"Client '{client_name}' created successfully in LogicMonitor."
 
 
-    # Add Adlumin Cloud device to the newly created client folder
-    add_lm_device(api_instance, new_client_folder_id, cloud_name, hostname2, cloud_collector_id, adlumin_properties)
-
-# === Entry Point ===
-if __name__ == "__main__":
-    logging.basicConfig(level=logging.INFO)
-    main()
+if __name__ == '__main__':
+    app.run(debug=True)

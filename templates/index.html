@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>LogicMonitor Client Setup</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 30px;
+            background-color: #f5f7fa;
+        }
+        h1 {
+            color: #333;
+        }
+        form {
+            background-color: white;
+            padding: 25px;
+            border-radius: 10px;
+            max-width: 800px;
+            margin: auto;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        }
+        fieldset {
+            margin-bottom: 20px;
+            border: 1px solid #ccc;
+            padding: 15px;
+            border-radius: 8px;
+        }
+        legend {
+            font-weight: bold;
+        }
+        label {
+            display: block;
+            margin-top: 10px;
+        }
+        input[type="text"], input[type="number"] {
+            width: 100%;
+            padding: 8px;
+            margin-top: 4px;
+            box-sizing: border-box;
+        }
+        button {
+            margin-top: 20px;
+            background-color: #4CAF50;
+            color: white;
+            padding: 12px 20px;
+            border: none;
+            border-radius: 5px;
+            font-size: 16px;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+    </style>
+</head>
+<body>
+
+<h1>LogicMonitor Client Setup</h1>
+
+<form method="POST" action="/submit">
+    <fieldset>
+        <legend>Client Information</legend>
+        <label for="client_name">Client Name:</label>
+        <input type="text" id="client_name" name="client_name" required>
+
+        <label for="company_name">Company Name:</label>
+        <input type="text" id="company_name" name="company_name" required>
+
+        <label for="company_id">ConnectWise Company ID:</label>
+        <input type="text" id="company_id" name="company_id" required>
+    </fieldset>
+
+    <fieldset>
+        <legend>Microsoft Defender Device</legend>
+        <label for="defender_hostname">Hostname:</label>
+        <input type="text" id="defender_hostname" name="defender_hostname" required>
+
+        <label for="defender_collector_id">Collector ID:</label>
+        <input type="number" id="defender_collector_id" name="defender_collector_id" required>
+
+        <label for="azure_client_id">azure.client.id:</label>
+        <input type="text" id="azure_client_id" name="azure_client_id" required>
+
+        <label for="azure_client_key">azure.client.key:</label>
+        <input type="text" id="azure_client_key" name="azure_client_key" required>
+
+        <label for="azure_mcas_pass">azure.client.mcas.pass:</label>
+        <input type="text" id="azure_mcas_pass" name="azure_mcas_pass" required>
+
+        <label for="azure_mcas_url">azure.client.mcas.url:</label>
+        <input type="text" id="azure_mcas_url" name="azure_mcas_url" required>
+
+        <label for="azure_tenant_id">azure.tenant.id:</label>
+        <input type="text" id="azure_tenant_id" name="azure_tenant_id" required>
+    </fieldset>
+
+    <fieldset>
+        <legend>Adlumin Cloud Device</legend>
+        <label for="adlumin_hostname">Hostname:</label>
+        <input type="text" id="adlumin_hostname" name="adlumin_hostname" required>
+
+        <label for="adlumin_collector_id">Collector ID:</label>
+        <input type="number" id="adlumin_collector_id" name="adlumin_collector_id" required>
+
+        <label for="adlumin_api_key">Adlumin.api.key:</label>
+        <input type="text" id="adlumin_api_key" name="adlumin_api_key" required>
+
+        <label for="adlumin_client_id">adlumin.azure.client.id:</label>
+        <input type="text" id="adlumin_client_id" name="adlumin_client_id" required>
+
+        <label for="adlumin_client_key">adlumin.azure.client.key:</label>
+        <input type="text" id="adlumin_client_key" name="adlumin_client_key" required>
+
+        <label for="adlumin_tenant_id">adlumin.azure.tenant.id:</label>
+        <input type="text" id="adlumin_tenant_id" name="adlumin_tenant_id" required>
+
+        <label for="adlumin_tenant_id_2">Adlumin.Tenant.id:</label>
+        <input type="text" id="adlumin_tenant_id_2" name="adlumin_tenant_id_2" required>
+    </fieldset>
+
+    <button type="submit">Create Client</button>
+</form>
+
+</body>
+</html>
