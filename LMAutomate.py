@@ -1,4 +1,4 @@
-# Version 5.1.1
+# Version 5.2
 
 from flask import Flask, render_template, request
 import logicmonitor_sdk
@@ -30,6 +30,26 @@ group_settings = [
     ("_Disabled", lambda path: f"(system.displayname =~ \"-test`$\" || system.azure.resourcegroupname =~ \"-test\" || system.azure.status =~ \"deallocated\" || system.azure.resourcegroupname =~ \"-desktops\") && join(system.staticgroups,\",\") =~ \"{path}/\"", False)
 ]
 
+#################### FUNCTIONS ####################
+
+def fetch_collectors():
+    try:
+        response = api_instance.get_collector_list(size=1000)
+        collectors = response.items
+
+        # Filter active collectors and sort by ID
+        sorted_collectors = sorted(
+            [(c.id, f"{c.description or c.hostname} (ID: {c.id})") for c in collectors if c.status == 1],
+            key=lambda x: x[0]  # sort by ID
+        )
+
+        return sorted_collectors
+    except ApiException as e:
+        logging.error(f"Failed to fetch collectors: {e}")
+        return []
+
+
+ 
 def create_folder(api_instance, parent_folder_id, folder_name):
     try:
         folder = logicmonitor_sdk.DeviceGroup(name=folder_name, parent_id=parent_folder_id)
@@ -88,6 +108,7 @@ def create_dynamic_group(api_instance, parent_id, name, query, enable_netflow=Fa
     except ApiException as e:
         logging.error(f"Failed to create dynamic group '{name}': {e}")
 
+# general function to add a device to a logic monitor client (could be defender, adlumin, etc...)
 def add_lm_device(api_instance, parent_folder_id, device_name, hostname, collector_id, properties):
     try:
         if collector_id <= 0:
@@ -109,7 +130,8 @@ def add_lm_device(api_instance, parent_folder_id, device_name, hostname, collect
 
 @app.route('/')
 def form():
-    return render_template('index.html')
+    collector_options = fetch_collectors()
+    return render_template('index.html', collectors=collector_options)
 
 @app.route('/submit', methods=['POST'])
 def submit():
@@ -177,3 +199,13 @@ def submit():
 
 if __name__ == '__main__':
     app.run(debug=True)
+
+
+
+# for adlumin - hostname is company names with no spaces (trimmed) and no special characters
+# retrieve list of collectors and allow to be selected, then get the collector id from there
+# add sdt to top level when client is created (current time + # of days)
+
+# -------------------------------------------------------------------------
+
+# github is connected to azure and azure key vault, need to just adjust code to retrieve auth from key vault
