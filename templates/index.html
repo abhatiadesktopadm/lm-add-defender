@@ -76,8 +76,12 @@
         <label for="defender_hostname">Hostname:</label>
         <input type="text" id="defender_hostname" name="defender_hostname" required>
 
-        <label for="defender_collector_id">Collector ID:</label>
-        <input type="number" id="defender_collector_id" name="defender_collector_id" required>
+        <label for="defender_collector_id">Collector for Microsoft Defender:</label>
+        <select id="defender_collector_id" name="defender_collector_id" required>
+            {% for id, name in collectors %}
+                <option value="{{ id }}">{{ name }}</option>
+            {% endfor %}
+        </select>
 
         <label for="azure_client_id">azure.client.id:</label>
         <input type="text" id="azure_client_id" name="azure_client_id" required>
@@ -100,8 +104,12 @@
         <label for="adlumin_hostname">Hostname:</label>
         <input type="text" id="adlumin_hostname" name="adlumin_hostname" required>
 
-        <label for="adlumin_collector_id">Collector ID:</label>
-        <input type="number" id="adlumin_collector_id" name="adlumin_collector_id" required>
+        <label for="adlumin_collector_id">Collector for Adlumin Cloud:</label>
+        <select id="adlumin_collector_id" name="adlumin_collector_id" required>
+            {% for id, name in collectors %}
+                <option value="{{ id }}">{{ name }}</option>
+            {% endfor %}
+        </select>
 
         <label for="adlumin_api_key">Adlumin.api.key:</label>
         <input type="text" id="adlumin_api_key" name="adlumin_api_key" required>
