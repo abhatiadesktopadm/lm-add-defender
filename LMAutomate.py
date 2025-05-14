@@ -1,4 +1,4 @@
-# Version 5.3
+# Version 5.3.1
 
 from flask import Flask, render_template, request
 import logicmonitor_sdk
@@ -13,6 +13,26 @@ from azure.keyvault.secrets import SecretClient
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
+
+# function to get LM auth from keyvault
+def get_lm_credentials_from_keyvault():
+    with open('config.json') as f:
+        config = json.load(f)
+
+    vault_name = config["AzureKeyVault"]
+    kv_url = f"https://{vault_name}.vault.azure.net"
+    credential = DefaultAzureCredential()
+    client = SecretClient(vault_url=kv_url, credential=credential)
+
+    access_id_secret = config["LogicMonitor"]["access_id-secret"]
+    access_key_secret = config["LogicMonitor"]["access_key-secret"]
+
+    access_id = client.get_secret(access_id_secret).value
+    access_key = client.get_secret(access_key_secret).value
+    company = config["LogicMonitor"]["company"]
+
+    return company, access_id, access_key
+
 
 # === LogicMonitor API Configuration ===
 company, access_id, access_key = get_lm_credentials_from_keyvault()
@@ -38,25 +58,6 @@ group_settings = [
 ]
 
 #################### FUNCTIONS ####################
-
-def get_lm_credentials_from_keyvault():
-    with open('config.json') as f:
-        config = json.load(f)
-
-    vault_name = config["AzureKeyVault"]
-    kv_url = f"https://{vault_name}.vault.azure.net"
-    credential = DefaultAzureCredential()
-    client = SecretClient(vault_url=kv_url, credential=credential)
-
-    access_id_secret = config["LogicMonitor"]["access_id-secret"]
-    access_key_secret = config["LogicMonitor"]["access_key-secret"]
-
-    access_id = client.get_secret(access_id_secret).value
-    access_key = client.get_secret(access_key_secret).value
-    company = config["LogicMonitor"]["company"]
-
-    return company, access_id, access_key
-
 
 def fetch_collectors():
     try:
@@ -154,6 +155,11 @@ def add_lm_device(api_instance, parent_folder_id, device_name, hostname, collect
         logging.error(f"Failed to add device '{device_name}': {e}")
         return None
 
+def generate_adlumin_hostname(company_name):
+    # Remove non-alphanumeric characters
+    cleaned = re.sub(r'[^a-zA-Z0-9]', '', company_name)
+    return cleaned.lower()
+
 @app.route('/')
 def form():
     collector_options = fetch_collectors()
@@ -214,7 +220,7 @@ def submit():
         api_instance,
         new_client_folder_id,
         adlumin_name,
-        data["adlumin_hostname"],
+        generate_adlumin_hostname(client_name),
         int(data["adlumin_collector_id"]),
         adlumin_props
     )
