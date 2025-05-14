@@ -1,0 +1,8 @@
+{
+    "AzureKeyVault": "lmnewclient",
+    "LogicMonitor": {
+      "company": "align",
+      "access_id-secret": "LM-RW-ID",
+      "access_key-secret": "LM-RW-KEY"
+    }
+  }

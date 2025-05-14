@@ -1,4 +1,4 @@
-# Version 5.2
+# Version 5.3
 
 from flask import Flask, render_template, request
 import logicmonitor_sdk
@@ -6,14 +6,21 @@ from logicmonitor_sdk.rest import ApiException
 import logging
 import json
 
+import os
+from azure.identity import DefaultAzureCredential
+from azure.keyvault.secrets import SecretClient
+
+
 # Configure logging
 logging.basicConfig(level=logging.INFO)
 
 # === LogicMonitor API Configuration ===
+company, access_id, access_key = get_lm_credentials_from_keyvault()
+
 lmconfig = logicmonitor_sdk.Configuration()
-lmconfig.company = 'align'
-lmconfig.access_id = '3sG44q9cJk7VD674EydM'
-lmconfig.access_key = '(=(+rHtgLSmqDCrq7r3Pev6T(=Q9_qDVyA8}_]p='
+lmconfig.company = company
+lmconfig.access_id = access_id
+lmconfig.access_key = access_key
 
 # Initialize API Client
 api_instance = logicmonitor_sdk.LMApi(logicmonitor_sdk.ApiClient(lmconfig))
@@ -31,6 +38,25 @@ group_settings = [
 ]
 
 #################### FUNCTIONS ####################
+
+def get_lm_credentials_from_keyvault():
+    with open('config.json') as f:
+        config = json.load(f)
+
+    vault_name = config["AzureKeyVault"]
+    kv_url = f"https://{vault_name}.vault.azure.net"
+    credential = DefaultAzureCredential()
+    client = SecretClient(vault_url=kv_url, credential=credential)
+
+    access_id_secret = config["LogicMonitor"]["access_id-secret"]
+    access_key_secret = config["LogicMonitor"]["access_key-secret"]
+
+    access_id = client.get_secret(access_id_secret).value
+    access_key = client.get_secret(access_key_secret).value
+    company = config["LogicMonitor"]["company"]
+
+    return company, access_id, access_key
+
 
 def fetch_collectors():
     try:
