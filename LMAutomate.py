@@ -1,10 +1,11 @@
-# Version 5.3.1
+# Version 5.3.2
 
 from flask import Flask, render_template, request
 import logicmonitor_sdk
 from logicmonitor_sdk.rest import ApiException
 import logging
 import json
+import re
 
 import os
 from azure.identity import DefaultAzureCredential
@@ -179,6 +180,7 @@ def submit():
     logging.info(f"New client folder ID: {new_client_folder_id}")
     if not new_client_folder_id:
         return "Error creating client folder."
+        logging.info()
 
     add_client_folder_properties(api_instance, new_client_folder_id, company_name, company_id)
     logging.info("Client folder properties added.")
