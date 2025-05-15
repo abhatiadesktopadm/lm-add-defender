@@ -6,7 +6,7 @@ from logicmonitor_sdk.rest import ApiException
 import logging
 import json
 import re
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 
 import os
