@@ -81,7 +81,7 @@ def add_sdt_to_device_group(api_instance, group_id, duration_hours):
     )
 
     try:
-        response = api_instance.add_sdt("DeviceGroup", group_id, sdt_payload)
+        response = api_instance.add_sdt(sdt_payload)
         logging.info(f"SDT added successfully to group ID {group_id}.")
     except ApiException as e:
         logging.error(f"Failed to add SDT to group {group_id}: {e}")
