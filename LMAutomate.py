@@ -62,29 +62,30 @@ group_settings = [
 
 #################### FUNCTIONS ####################
 
-def add_sdt_to_device_group(api_instance, device_group_id, duration_hours):
-    if duration_hours == 0:
-        logging.info("No SDT requested (duration = 0).")
-        return None
+def add_sdt_to_device_group(api_instance, group_id, duration_hours):
+    if duration_hours <= 0:
+        logging.info("No SDT added: user input was 0 hours.")
+        return
+
+    now = datetime.now(timezone.utc)
+    start = int((now + timedelta(minutes=1)).timestamp() * 1000)  # Ensure it's in the future
+    end = int((now + timedelta(hours=duration_hours)).timestamp() * 1000)
+
+    sdt_payload = logicmonitor_sdk.SDT(
+        type="DeviceGroupSDT",                      # Type of SDT (MUST match LogicMonitor's enum)
+        start_date_time=start,                      # Epoch in ms
+        end_date_time=end,                          # Epoch in ms
+        timezone="America/New_York",                # You can change this as needed
+        comment="Initial setup SDT",                # Optional comment
+        is_effective=True                           # Mark as active
+    )
 
     try:
-        start = datetime.utcnow() + timedelta(minutes=1)  # start time 1 minute in future
-        end = start + timedelta(hours=duration_hours)
-
-        sdt_payload = logicmonitor_sdk.SDT(
-            type="DeviceGroupSDT",
-            device_group_id=device_group_id,
-            start_date_time=int(start.timestamp() * 1000),
-            end_date_time=int(end.timestamp() * 1000),
-            comment="User-specified client SDT"
-        )
-
-        response = api_instance.add_sdt(sdt_payload)
-        logging.info(f"✅ SDT added to Device Group {device_group_id}. SDT ID: {response.id}")
-        return response
+        response = api_instance.add_sdt("DeviceGroup", group_id, sdt_payload)
+        logging.info(f"SDT added successfully to group ID {group_id}.")
     except ApiException as e:
-        logging.error(f"Error adding SDT: {e}")
-        return None
+        logging.error(f"Failed to add SDT to group {group_id}: {e}")
+
 
 
 def fetch_collectors():
@@ -210,7 +211,7 @@ def submit():
         logging.info()
 
     sdt_duration = int(data.get("sdt_duration", 0))
-    add_sdt_to_device_group(api_instance, new_client_folder_id, sdt_duration)
+    add_sdt_to_device_group(api_instance, new_client_folder_id, sdt_duration = 0)
 
 
     add_client_folder_properties(api_instance, new_client_folder_id, company_name, company_id)
