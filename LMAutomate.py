@@ -210,10 +210,6 @@ def submit():
         return "Error creating client folder."
         logging.info()
 
-    sdt_duration = int(data.get("sdt_duration", 0))
-    add_sdt_to_device_group(api_instance, new_client_folder_id, sdt_duration = 0)
-
-
     add_client_folder_properties(api_instance, new_client_folder_id, company_name, company_id)
     logging.info("Client folder properties added.")
 
@@ -259,6 +255,10 @@ def submit():
         adlumin_props
     )
     logging.info(f"Adlumin device ID returned: {adlumin_device_id}")
+
+    sdt_duration = int(data.get("sdt_duration", 0))
+    if sdt_duration > 0:
+        add_sdt_to_device_group(api_instance, new_client_folder_id, sdt_duration)
 
     return f"Client '{client_name}' created successfully in LogicMonitor."
 
