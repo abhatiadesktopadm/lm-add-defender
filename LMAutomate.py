@@ -72,7 +72,9 @@ def add_sdt_to_device_group(api_instance, group_id, duration_hours):
     end = int((now + timedelta(hours=duration_hours)).timestamp() * 1000)
 
     sdt_payload = logicmonitor_sdk.SDT(
-        type="DeviceGroupSDT",                      # Type of SDT (MUST match LogicMonitor's enum)
+        type="DeviceGroupSDT", 
+        deviceGroupId=group_id,
+        sdtType=1,                     # Type of SDT (MUST match LogicMonitor's enum)
         start_date_time=start,                      # Epoch in ms
         end_date_time=end,                          # Epoch in ms
         timezone="America/New_York",                # You can change this as needed
