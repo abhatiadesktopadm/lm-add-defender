@@ -1,4 +1,4 @@
-# Version 5.3.2
+# Version 5.4.1
 
 from flask import Flask, render_template, request
 import logicmonitor_sdk
@@ -6,6 +6,8 @@ from logicmonitor_sdk.rest import ApiException
 import logging
 import json
 import re
+from datetime import datetime, timedelta
+
 
 import os
 from azure.identity import DefaultAzureCredential
@@ -59,6 +61,31 @@ group_settings = [
 ]
 
 #################### FUNCTIONS ####################
+
+def add_sdt_to_device_group(api_instance, device_group_id, duration_hours):
+    if duration_hours == 0:
+        logging.info("No SDT requested (duration = 0).")
+        return None
+
+    try:
+        start = datetime.utcnow() + timedelta(minutes=1)  # start time 1 minute in future
+        end = start + timedelta(hours=duration_hours)
+
+        sdt_payload = logicmonitor_sdk.SDT(
+            type="DeviceGroupSDT",
+            device_group_id=device_group_id,
+            start_date_time=int(start.timestamp() * 1000),
+            end_date_time=int(end.timestamp() * 1000),
+            comment="User-specified client SDT"
+        )
+
+        response = api_instance.add_sdt(sdt_payload)
+        logging.info(f"✅ SDT added to Device Group {device_group_id}. SDT ID: {response.id}")
+        return response
+    except ApiException as e:
+        logging.error(f"Error adding SDT: {e}")
+        return None
+
 
 def fetch_collectors():
     try:
@@ -181,6 +208,10 @@ def submit():
     if not new_client_folder_id:
         return "Error creating client folder."
         logging.info()
+
+    sdt_duration = int(data.get("sdt_duration", 0))
+    add_sdt_to_device_group(api_instance, new_client_folder_id, sdt_duration)
+
 
     add_client_folder_properties(api_instance, new_client_folder_id, company_name, company_id)
     logging.info("Client folder properties added.")
