@@ -187,9 +187,9 @@ def add_lm_device(api_instance, parent_folder_id, device_name, hostname, collect
         return None
 
 def generate_adlumin_hostname(company_name):
-    # Remove non-alphanumeric characters
+    # remove non-alphanumeric characters
     cleaned = re.sub(r'[^a-zA-Z0-9]', '', company_name)
-    return cleaned.lower()
+    return cleaned.lower() + ".portal.adlumin.com"
 
 @app.route('/')
 def form():
@@ -238,13 +238,21 @@ def submit():
     )
     logging.info(f"Defender device ID returned: {defender_device_id}")
 
-    adlumin_props = [
-        {"name": "Adlumin.api.key", "value": data["adlumin_api_key"]},
+    adlumin_props = []
+
+    # Conditionally add optional field
+    adlumin_api_key = data.get("adlumin_api_key", "").strip()
+    if adlumin_api_key:
+        adlumin_props.append({"name": "Adlumin.api.key", "value": adlumin_api_key})
+
+    # Add mandatory fields
+    adlumin_props.extend([
         {"name": "adlumin.azure.client.id", "value": data["adlumin_client_id"]},
         {"name": "adlumin.azure.client.key", "value": data["adlumin_client_key"]},
         {"name": "adlumin.azure.tenant.id", "value": data["adlumin_tenant_id"]},
         {"name": "Adlumin.Tenant.id", "value": data["adlumin_tenant_id_2"]}
-    ]
+    ])
+
     logging.info(f"Adlumin properties: {adlumin_props}")
 
     adlumin_name = f"Adlumin Cloud - {client_name}"
@@ -271,9 +279,7 @@ if __name__ == '__main__':
 
 
 # for adlumin - hostname is company names with no spaces (trimmed) and no special characters
-# retrieve list of collectors and allow to be selected, then get the collector id from there
-# add sdt to top level when client is created (current time + # of days)
-
-# -------------------------------------------------------------------------
-
-# github is connected to azure and azure key vault, need to just adjust code to retrieve auth from key vault
+# not required fields - adlumin api key (everything else mandatory)
+# change sdt to days not hours
+# add version number to bottom of page
+# sort collector dropdown alphabetically, change it to allow for searching
