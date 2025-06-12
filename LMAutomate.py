@@ -98,7 +98,7 @@ def fetch_collectors():
         # Filter active collectors and sort by ID
         sorted_collectors = sorted(
             [(c.id, f"{c.description or c.hostname} (ID: {c.id})") for c in collectors if c.status == 1],
-            key=lambda x: x[0]  # sort by ID
+            key=lambda x: x[1].lower()  # sort by name (case-insensitive)
         )
 
         return sorted_collectors
@@ -201,6 +201,18 @@ def submit():
     data = request.form
     logging.info(f"Received form data: {data}")  # <-- Debug input
 
+    required_fields = [
+        "client_name", "company_name", "company_id",
+        "defender_hostname", "defender_collector_id",
+        "azure_client_id", "azure_client_key", "azure_mcas_pass", "azure_mcas_url", "azure_tenant_id",
+        "adlumin_client_id", "adlumin_client_key", "adlumin_tenant_id", "adlumin_tenant_id_2"
+    ]
+
+    missing_fields = [field for field in required_fields if not data.get(field)]
+    if missing_fields:
+        return f"Error: Missing required fields: {', '.join(missing_fields)}", 400
+
+
     client_name = data['client_name']
     company_name = data['company_name']
     company_id = data['company_id']
@@ -208,6 +220,7 @@ def submit():
 
     new_client_folder_id = create_folder(api_instance, root_folder_id, client_name)
     logging.info(f"New client folder ID: {new_client_folder_id}")
+
     if not new_client_folder_id:
         return "Error creating client folder."
         logging.info()
