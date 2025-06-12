@@ -62,24 +62,24 @@ group_settings = [
 
 #################### FUNCTIONS ####################
 
-def add_sdt_to_device_group(api_instance, group_id, duration_hours):
-    if duration_hours <= 0:
+def add_sdt_to_device_group(api_instance, group_id, duration_days):
+    if duration_days <= 0:
         logging.info("No SDT added: user input was 0 hours.")
         return
 
     now = datetime.now(timezone.utc)
     start = int((now + timedelta(minutes=1)).timestamp() * 1000)  # Ensure it's in the future
-    end = int((now + timedelta(hours=duration_hours)).timestamp() * 1000)
+    end = int((now + timedelta(days=duration_days)).timestamp() * 1000)
 
-    sdt_payload = logicmonitor_sdk.SDT(
-        type="DeviceGroupSDT", 
-        deviceGroupId=group_id,
-        sdtType=1,                     # Type of SDT (MUST match LogicMonitor's enum)
-        start_date_time=start,                      # Epoch in ms
-        end_date_time=end,                          # Epoch in ms
-        timezone="America/New_York",                # You can change this as needed
-        comment="Initial setup SDT",                # Optional comment
-        is_effective=True                           # Mark as active
+    sdt_payload = logicmonitor_sdk.models.SDT(
+        type="ResourceGroupSDT",
+        device_group_id=group_id,
+        sdt_type=1,
+        start_date_time=start,
+        end_date_time=end,
+        timezone="America/New_York",
+        comment="Initial setup SDT",
+        is_effective=True
     )
 
     try:
