@@ -64,7 +64,7 @@ group_settings = [
 
 def add_sdt_to_device_group(api_instance, group_id, duration_days):
     if duration_days <= 0:
-        logging.info("No SDT added: user input was 0 hours.")
+        logging.info("No SDT added: user input was 0 days.")
         return
 
     now = datetime.now(timezone.utc)
@@ -74,7 +74,6 @@ def add_sdt_to_device_group(api_instance, group_id, duration_days):
     sdt_payload = logicmonitor_sdk.models.SDT(
         type="ResourceGroupSDT",
         device_group_id=group_id,
-        sdt_type=1,
         start_date_time=start,
         end_date_time=end,
         timezone="America/New_York",
