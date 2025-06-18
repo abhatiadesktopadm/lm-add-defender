@@ -71,7 +71,7 @@ def add_sdt_to_device_group(api_instance, group_id, duration_days):
     start = int((now + timedelta(minutes=1)).timestamp() * 1000)  # Ensure it's in the future
     end = int((now + timedelta(days=duration_days)).timestamp() * 1000)
 
-    sdt_payload = logicmonitor_sdk.models.SDT(
+    sdt_payload = logicmonitor_sdk.models.ResourceGroupSDT(
         type="ResourceGroupSDT",
         device_group_id=group_id,
         start_date_time=start,
