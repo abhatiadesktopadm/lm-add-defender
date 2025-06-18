@@ -1,4 +1,4 @@
-# Version 5.4.1
+# Version 6.1.1
 
 from flask import Flask, render_template, request
 import logicmonitor_sdk
@@ -13,6 +13,9 @@ import os
 from azure.identity import DefaultAzureCredential
 from azure.keyvault.secrets import SecretClient
 
+# app version
+
+APP_VERSION = "v6.1.1"
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -193,7 +196,7 @@ def generate_adlumin_hostname(company_name):
 @app.route('/')
 def form():
     collector_options = fetch_collectors()
-    return render_template('index.html', collectors=collector_options)
+    return render_template('index.html', collectors=collector_options, version=APP_VERSION)
 
 @app.route('/submit', methods=['POST'])
 def submit():
@@ -287,11 +290,3 @@ def submit():
  
 if __name__ == '__main__':
     app.run(debug=True)
-
-
-
-# for adlumin - hostname is company names with no spaces (trimmed) and no special characters
-# not required fields - adlumin api key (everything else mandatory)
-# change sdt to days not hours
-# add version number to bottom of page
-# sort collector dropdown alphabetically, change it to allow for searching
