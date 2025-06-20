@@ -12,6 +12,8 @@ from datetime import datetime, timedelta, timezone
 import os
 from azure.identity import DefaultAzureCredential
 from azure.keyvault.secrets import SecretClient
+import azure.functions as func
+
 
 # app version
 
@@ -66,7 +68,9 @@ group_settings = [
 #################### FUNCTIONS ####################
 
 def validateIP(req: func.HttpRequest, config):
+
     logging.info("In validateIP")
+
     if req.headers.get('X-Forwarded-For') is None:
         ip = req.headers.get('X-Real-IP', req.remote_addr)
     else:
