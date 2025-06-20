@@ -1,6 +1,7 @@
 # Version 6.1.2
 
 from flask import Flask, render_template, request
+from flask import Response
 import logicmonitor_sdk
 from logicmonitor_sdk.rest import ApiException
 import logging
@@ -12,8 +13,6 @@ from datetime import datetime, timedelta, timezone
 import os
 from azure.identity import DefaultAzureCredential
 from azure.keyvault.secrets import SecretClient
-import azure.functions as func
-
 
 # app version
 
@@ -67,7 +66,7 @@ group_settings = [
 
 #################### FUNCTIONS ####################
 
-def validateIP(req: func.HttpRequest, config):
+def validateIP(req, config):
 
     logging.info("In validateIP")
 
@@ -222,9 +221,9 @@ def form():
     with open('config.json') as f:
         config = json.load(f)
 
-    if not validateIP(req, config):
+    if not validateIP(request, config):
         logging.info("IP validation failed in /")
-        return func.HttpResponse("Forbidden", status_code=403)
+        return Response("Forbidden", status=403)
     
     collector_options = fetch_collectors()
     return render_template('index.html', collectors=collector_options, version=APP_VERSION)
@@ -235,9 +234,9 @@ def submit():
     with open('config.json') as f:
         config = json.load(f)
 
-    if not validateIP(req, config):
+    if not validateIP(request, config):
         logging.info("IP validation failed in /submit")
-        return func.HttpResponse("Forbidden", status_code=403)
+        return Response("Forbidden", status=403)
 
     data = request.form
     logging.info(f"Received form data: {data}")  # <-- Debug input
