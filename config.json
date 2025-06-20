@@ -4,5 +4,6 @@
       "company": "align",
       "access_id-secret": "LM-RW-ID",
       "access_key-secret": "LM-RW-KEY"
-    }
+    }, 
+    "IPsAllowed": ["199.16.60.1", "66.220.232.246", "69.115.231.226", "122.161.240.177", "198.44.131.176"]
   }

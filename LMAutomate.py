@@ -1,4 +1,4 @@
-# Version 6.1.1
+# Version 6.1.2
 
 from flask import Flask, render_template, request
 import logicmonitor_sdk
@@ -15,7 +15,7 @@ from azure.keyvault.secrets import SecretClient
 
 # app version
 
-APP_VERSION = "v6.1.1"
+APP_VERSION = "v6.1.2"
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -64,6 +64,25 @@ group_settings = [
 ]
 
 #################### FUNCTIONS ####################
+
+def validateIP(req: func.HttpRequest, config):
+    logging.info("In validateIP")
+    if req.headers.get('X-Forwarded-For') is None:
+        ip = req.headers.get('X-Real-IP', req.remote_addr)
+    else:
+        ip = req.headers['X-Forwarded-For'].split(',')[0]
+    if ip:
+        ip = ip.split(':')[0]
+        if ip == '127.0.0.1':
+            logging.info("Localhost access allowed")
+            return True
+        allowed = config['IPsAllowed']
+        if allowed and ip in allowed:
+            logging.info(f"Allowed {ip}")
+            return True
+    logging.info(f"Not Allowed: {ip}")
+    return False
+ 
 
 def add_sdt_to_device_group(api_instance, group_id, duration_days):
     if duration_days <= 0:
@@ -195,11 +214,27 @@ def generate_adlumin_hostname(company_name):
 
 @app.route('/')
 def form():
+
+    with open('config.json') as f:
+        config = json.load(f)
+
+    if not validateIP(req, config):
+        logging.info("IP validation failed in /")
+        return func.HttpResponse("Forbidden", status_code=403)
+    
     collector_options = fetch_collectors()
     return render_template('index.html', collectors=collector_options, version=APP_VERSION)
 
 @app.route('/submit', methods=['POST'])
 def submit():
+
+    with open('config.json') as f:
+        config = json.load(f)
+
+    if not validateIP(req, config):
+        logging.info("IP validation failed in /submit")
+        return func.HttpResponse("Forbidden", status_code=403)
+
     data = request.form
     logging.info(f"Received form data: {data}")  # <-- Debug input
 
@@ -290,3 +325,6 @@ def submit():
  
 if __name__ == '__main__':
     app.run(debug=True)
+
+
+# create checkbox for adlumin and defender
