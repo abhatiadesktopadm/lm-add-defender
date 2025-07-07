@@ -1,4 +1,4 @@
-# Version 6.1.2
+# Version 6.1.3
 
 from flask import Flask, render_template, request
 from flask import Response
@@ -16,7 +16,7 @@ from azure.keyvault.secrets import SecretClient
 
 # app version
 
-APP_VERSION = "v6.1.2"
+APP_VERSION = "v6.1.3"
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -242,16 +242,12 @@ def submit():
     logging.info(f"Received form data: {data}")  # <-- Debug input
 
     required_fields = [
-        "client_name", "company_name", "company_id",
-        "defender_hostname", "defender_collector_id",
-        "azure_client_id", "azure_client_key", "azure_mcas_pass", "azure_mcas_url", "azure_tenant_id",
-        "adlumin_client_id", "adlumin_client_key", "adlumin_tenant_id", "adlumin_tenant_id_2"
+        "client_name", "company_name", "company_id"
     ]
 
     missing_fields = [field for field in required_fields if not data.get(field)]
     if missing_fields:
         return f"Error: Missing required fields: {', '.join(missing_fields)}", 400
-
 
     client_name = data['client_name']
     company_name = data['company_name']
@@ -262,8 +258,8 @@ def submit():
     logging.info(f"New client folder ID: {new_client_folder_id}")
 
     if not new_client_folder_id:
+        logging.error("Error creating client folder.")
         return "Error creating client folder."
-        logging.info()
 
     add_client_folder_properties(api_instance, new_client_folder_id, company_name, company_id)
     logging.info("Client folder properties added.")
@@ -271,59 +267,80 @@ def submit():
     create_main_folder_structure(api_instance, new_client_folder_id)
     create_device_groups(api_instance, new_client_folder_id)
 
-    defender_props = [
-        {"name": "azure.client.id", "value": data["azure_client_id"]},
-        {"name": "azure.client.key", "value": data["azure_client_key"]},
-        {"name": "azure.client.mcas.pass", "value": data["azure_mcas_pass"]},
-        {"name": "azure.client.mcas.url", "value": data["azure_mcas_url"]},
-        {"name": "azure.tenant.id", "value": data["azure_tenant_id"]}
-    ]
-    logging.info(f"Defender properties: {defender_props}")
+    if "create_defender" in data:
+        defender_required = [
+            "defender_hostname", "defender_collector_id",
+            "azure_client_id", "azure_client_key",
+            "azure_mcas_pass", "azure_mcas_url", "azure_tenant_id"
+        ]
+        missing_defender = [f for f in defender_required if not data.get(f)]
+        if missing_defender:
+            return f"Error: Missing required Defender fields: {', '.join(missing_defender)}", 400
 
-    defender_name = f"Microsoft Defender - {client_name}"
-    defender_device_id = add_lm_device(
-        api_instance,
-        new_client_folder_id,
-        defender_name,
-        data["defender_hostname"],
-        int(data["defender_collector_id"]),
-        defender_props
-    )
-    logging.info(f"Defender device ID returned: {defender_device_id}")
+        defender_props = [
+            {"name": "azure.client.id", "value": data["azure_client_id"]},
+            {"name": "azure.client.key", "value": data["azure_client_key"]},
+            {"name": "azure.client.mcas.pass", "value": data["azure_mcas_pass"]},
+            {"name": "azure.client.mcas.url", "value": data["azure_mcas_url"]},
+            {"name": "azure.tenant.id", "value": data["azure_tenant_id"]}
+        ]
+        logging.info(f"Defender properties: {defender_props}")
 
-    adlumin_props = []
+        defender_name = f"Microsoft Defender - {client_name}"
+        defender_device_id = add_lm_device(
+            api_instance,
+            new_client_folder_id,
+            defender_name,
+            data["defender_hostname"],
+            int(data["defender_collector_id"]),
+            defender_props
+        )
+        logging.info(f"Defender device ID returned: {defender_device_id}")
+    else:
+        logging.info("Microsoft Defender creation skipped")
 
-    # Conditionally add optional field
-    adlumin_api_key = data.get("adlumin_api_key", "").strip()
-    if adlumin_api_key:
-        adlumin_props.append({"name": "Adlumin.api.key", "value": adlumin_api_key})
+    if "create_adlumin" in data:
+        adlumin_required = [
+            "adlumin_client_id", "adlumin_client_key",
+            "adlumin_tenant_id", "adlumin_tenant_id_2", "adlumin_collector_id"
+        ]
+        missing_adlumin = [f for f in adlumin_required if not data.get(f)]
+        if missing_adlumin:
+            return f"Error: Missing required Adlumin fields: {', '.join(missing_adlumin)}", 400
 
-    # Add mandatory fields
-    adlumin_props.extend([
-        {"name": "adlumin.azure.client.id", "value": data["adlumin_client_id"]},
-        {"name": "adlumin.azure.client.key", "value": data["adlumin_client_key"]},
-        {"name": "adlumin.azure.tenant.id", "value": data["adlumin_tenant_id"]},
-        {"name": "Adlumin.Tenant.id", "value": data["adlumin_tenant_id_2"]}
-    ])
+        adlumin_props = []
 
-    logging.info(f"Adlumin properties: {adlumin_props}")
+        adlumin_api_key = data.get("adlumin_api_key", "").strip()
+        if adlumin_api_key:
+            adlumin_props.append({"name": "Adlumin.api.key", "value": adlumin_api_key})
 
-    adlumin_name = f"Adlumin Cloud - {client_name}"
-    adlumin_device_id = add_lm_device(
-        api_instance,
-        new_client_folder_id,
-        adlumin_name,
-        generate_adlumin_hostname(client_name),
-        int(data["adlumin_collector_id"]),
-        adlumin_props
-    )
-    logging.info(f"Adlumin device ID returned: {adlumin_device_id}")
+        adlumin_props.extend([
+            {"name": "adlumin.azure.client.id", "value": data["adlumin_client_id"]},
+            {"name": "adlumin.azure.client.key", "value": data["adlumin_client_key"]},
+            {"name": "adlumin.azure.tenant.id", "value": data["adlumin_tenant_id"]},
+            {"name": "Adlumin.Tenant.id", "value": data["adlumin_tenant_id_2"]}
+        ])
+        logging.info(f"Adlumin properties: {adlumin_props}")
+
+        adlumin_name = f"Adlumin Cloud - {client_name}"
+        adlumin_device_id = add_lm_device(
+            api_instance,
+            new_client_folder_id,
+            adlumin_name,
+            generate_adlumin_hostname(client_name),
+            int(data["adlumin_collector_id"]),
+            adlumin_props
+        )
+        logging.info(f"Adlumin device ID returned: {adlumin_device_id}")
+    else:
+        logging.info("Adlumin Cloud creation skipped")
 
     sdt_duration = int(data.get("sdt_duration", 0))
     if sdt_duration > 0:
         add_sdt_to_device_group(api_instance, new_client_folder_id, sdt_duration)
 
     return f"Client '{client_name}' created successfully in LogicMonitor."
+
 
  
 if __name__ == '__main__':
