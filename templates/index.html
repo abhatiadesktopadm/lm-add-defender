@@ -162,6 +162,8 @@
 
         function update() {
             const checked = checkbox.checked;
+            section.style.display = checked ? 'block' : 'none';  // Hide or show the section
+
             inputs.forEach(input => {
                 if (input.name === "adlumin_api_key") {
                     input.required = false;
@@ -183,6 +185,7 @@
         toggleRequired("adlumin_fields", "create_adlumin");
     });
 </script>
+
 
 
 <footer style="text-align: center; margin-top: 40px; color: #888;">
