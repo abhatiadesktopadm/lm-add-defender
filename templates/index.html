@@ -79,82 +79,111 @@
     </fieldset>
 
     <label>
-        <input type="checkbox" name="create_defender" checked>
+        <input type="checkbox" name="create_defender" id="create_defender" checked>
         Create Microsoft Defender Device
     </label><br>
-
+    
     <label>
-        <input type="checkbox" name="create_adlumin" checked>
+        <input type="checkbox" name="create_adlumin" id="create_adlumin" checked>
         Create Adlumin Cloud Device
     </label><br><br>
     
-
-    <fieldset>
-        <legend>Microsoft Defender Device</legend>
-        <label for="defender_hostname">Hostname:</label>
-        <input type="text" id="defender_hostname" name="defender_hostname" required>
-
-        <label for="defender_collector_id">Collector for Microsoft Defender:</label>
-        <select id="defender_collector_id" name="defender_collector_id" required>
-            {% for id, name in collectors %}
-                <option value="{{ id }}">{{ name }}</option>
-            {% endfor %}
-        </select>
-
-        <label for="azure_client_id">azure.client.id:</label>
-        <input type="text" id="azure_client_id" name="azure_client_id" required>
-
-        <label for="azure_client_key">azure.client.key:</label>
-        <input type="text" id="azure_client_key" name="azure_client_key" required>
-
-        <label for="azure_mcas_pass">azure.client.mcas.pass:</label>
-        <input type="text" id="azure_mcas_pass" name="azure_mcas_pass" required>
-
-        <label for="azure_mcas_url">azure.client.mcas.url:</label>
-        <input type="text" id="azure_mcas_url" name="azure_mcas_url" required>
-
-        <label for="azure_tenant_id">azure.tenant.id:</label>
-        <input type="text" id="azure_tenant_id" name="azure_tenant_id" required>
-    </fieldset>
-
-    <fieldset>
-        <legend>Adlumin Cloud Device</legend>
-
-        <label for="adlumin_collector_id">Collector for Adlumin Cloud:</label>
-        <select id="adlumin_collector_id" name="adlumin_collector_id" required>
-            {% for id, name in collectors %}
-                <option value="{{ id }}">{{ name }}</option>
-            {% endfor %}
-        </select>
-
-        <label for="adlumin_api_key">Adlumin.api.key (optional):</label>
-        <input type="text" id="adlumin_api_key" name="adlumin_api_key">
-
-        <label for="adlumin_client_id">adlumin.azure.client.id:</label>
-        <input type="text" id="adlumin_client_id" name="adlumin_client_id" required>
-
-        <label for="adlumin_client_key">adlumin.azure.client.key:</label>
-        <input type="text" id="adlumin_client_key" name="adlumin_client_key" required>
-
-        <label for="adlumin_tenant_id">adlumin.azure.tenant.id:</label>
-        <input type="text" id="adlumin_tenant_id" name="adlumin_tenant_id" required>
-
-        <label for="adlumin_tenant_id_2">Adlumin.Tenant.id:</label>
-        <input type="text" id="adlumin_tenant_id_2" name="adlumin_tenant_id_2" required>
-    </fieldset>
-
+    <div id="defender_fields">
+        <fieldset>
+            <legend>Microsoft Defender Device</legend>
+    
+            <label for="defender_hostname">Hostname:</label>
+            <input type="text" id="defender_hostname" name="defender_hostname">
+    
+            <label for="defender_collector_id">Collector for Microsoft Defender:</label>
+            <select id="defender_collector_id" name="defender_collector_id">
+                {% for id, name in collectors %}
+                    <option value="{{ id }}">{{ name }}</option>
+                {% endfor %}
+            </select>
+    
+            <label for="azure_client_id">azure.client.id:</label>
+            <input type="text" id="azure_client_id" name="azure_client_id">
+    
+            <label for="azure_client_key">azure.client.key:</label>
+            <input type="text" id="azure_client_key" name="azure_client_key">
+    
+            <label for="azure_mcas_pass">azure.client.mcas.pass:</label>
+            <input type="text" id="azure_mcas_pass" name="azure_mcas_pass">
+    
+            <label for="azure_mcas_url">azure.client.mcas.url:</label>
+            <input type="text" id="azure_mcas_url" name="azure_mcas_url">
+    
+            <label for="azure_tenant_id">azure.tenant.id:</label>
+            <input type="text" id="azure_tenant_id" name="azure_tenant_id">
+        </fieldset>
+    </div>
+    
+    <div id="adlumin_fields">
+        <fieldset>
+            <legend>Adlumin Cloud Device</legend>
+    
+            <label for="adlumin_collector_id">Collector for Adlumin Cloud:</label>
+            <select id="adlumin_collector_id" name="adlumin_collector_id">
+                {% for id, name in collectors %}
+                    <option value="{{ id }}">{{ name }}</option>
+                {% endfor %}
+            </select>
+    
+            <label for="adlumin_api_key">Adlumin.api.key (optional):</label>
+            <input type="text" id="adlumin_api_key" name="adlumin_api_key">
+    
+            <label for="adlumin_client_id">adlumin.azure.client.id:</label>
+            <input type="text" id="adlumin_client_id" name="adlumin_client_id">
+    
+            <label for="adlumin_client_key">adlumin.azure.client.key:</label>
+            <input type="text" id="adlumin_client_key" name="adlumin_client_key">
+    
+            <label for="adlumin_tenant_id">adlumin.azure.tenant.id:</label>
+            <input type="text" id="adlumin_tenant_id" name="adlumin_tenant_id">
+    
+            <label for="adlumin_tenant_id_2">Adlumin.Tenant.id:</label>
+            <input type="text" id="adlumin_tenant_id_2" name="adlumin_tenant_id_2">
+        </fieldset>
+    </div>
+    
     <button type="submit">Create Client</button>
+    
 </form>
 
 <!-- jQuery + Select2 JS -->
 <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
 <script>
-    $(document).ready(function() {
+    function toggleRequired(sectionId, checkboxId) {
+        const section = document.getElementById(sectionId);
+        const checkbox = document.getElementById(checkboxId);
+        const inputs = section.querySelectorAll('input, select');
+
+        function update() {
+            const checked = checkbox.checked;
+            inputs.forEach(input => {
+                if (input.name === "adlumin_api_key") {
+                    input.required = false;
+                } else {
+                    input.required = checked;
+                }
+            });
+        }
+
+        checkbox.addEventListener('change', update);
+        update();
+    }
+
+    $(document).ready(function () {
         $('#defender_collector_id').select2();
         $('#adlumin_collector_id').select2();
+
+        toggleRequired("defender_fields", "create_defender");
+        toggleRequired("adlumin_fields", "create_adlumin");
     });
 </script>
+
 
 <footer style="text-align: center; margin-top: 40px; color: #888;">
     Version {{ version }}
